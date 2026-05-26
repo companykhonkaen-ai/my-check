@@ -1,79 +1,102 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็กสถานะกระสวยอีแปะ</title>
-    <style>
-        * { box-sizing: border-box; font-family: sans-serif; }
-        body { background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; padding: 25px; text-align: center; }
-        h2 { color: #333; margin-top: 0; margin-bottom: 5px; }
-        .machine-id { font-size: 1.2rem; color: #666; font-weight: bold; margin-bottom: 20px; }
-        .status-box { padding: 15px; border-radius: 10px; font-size: 1.3rem; font-weight: bold; margin-bottom: 25px; }
-        .status-safe { background-color: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
-        .status-warning { background-color: #f8d7da; color: #721c24; border: 2px solid #f5c6cb; }
-        .info-grid { display: grid; grid-template-columns: 1fr; gap: 12px; text-align: left; margin-bottom: 20px; }
-        .info-item { background: #f8f9fa; padding: 12px 15px; border-radius: 8px; border-left: 5px solid #007bff; }
-        .info-item.end { border-left-color: #dc3545; }
-        .label { font-size: 0.9rem; color: #666; display: block; margin-bottom: 4px; }
-        .value { font-size: 1.1rem; color: #222; font-weight: 600; }
-    </style>
-</head>
-<body>
+import io
+import pandas as pd
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
+import streamlit as st
 
-<div class="card">
-    <h2 id="machineName">เครื่องทอผ้า</h2>
-    <div class="machine-id" id="machineId">MC-01</div>
-    <div id="statusBox" class="status-box">กำลังคำนวณ...</div>
-    <div class="info-grid">
-        <div class="info-item">
-            <span class="label">?? เริ่มทาสีล่าสุดเมื่อวันที่:</span>
-            <span class="value" id="startDate">-- / -- / ----</span>
-        </div>
-        <div class="info-item end">
-            <span class="label">?? กำหนดสิ้นสุดรอบการทาสีใหม่:</span>
-            <span class="value" id="endDate">-- / -- / ----</span>
-        </div>
-    </div>
-</div>
+st.set_page_config(page_title="โปรแกรมตรวจสอบเส้นเงิน", page_icon="📊", layout="wide")
+st.title("📊 โปรแกรม ตรวจสอบเส้นเงิน ย้อนหลัง 10 ปี")
+st.subheader("ระบบสรุปยอดกระแสเงินสด สถิติการฝาก-ถอน รายเดือนและรายปีอัตโนมัติ")
+st.markdown("---")
+st.info("💡 **วิธีใช้งาน:** 1. อัปโหลดไฟล์ Excel (คอลัมน์ต้องมีชื่อ Date, Deposit, Withdrawal) 2. รอระบบคำนวณ 3. กดดาวน์โหลด")
 
-<script>
-    // ==========================================
-    // ?? แก้ไขข้อมูลในเครื่องหมายคำพูด " " ตรงนี้ได้เลยครับ
-    // ==========================================
-    const CONFIG = {
-        machineName: "เครื่องทอผ้ากระสวยอีแปะ", 
-        machineId: "เครื่องจักรหมายเลข 01",   
-        startDate: "2026-05-01", // ปี-เดือน-วัน เริ่มทาสี           
-        endDate: "2026-06-01"   // ปี-เดือน-วัน สิ้นสุดรอบต้องทาใหม่           
-    };
+uploaded_file = st.file_uploader("เลือกไฟล์ Excel ข้อมูลดิบของคุณ (.xlsx)", type=["xlsx"])
 
-    function initStatus() {
-        document.getElementById('machineName').innerText = CONFIG.machineName;
-        document.getElementById('machineId').innerText = CONFIG.machineId;
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('startDate').innerText = new Date(CONFIG.startDate).toLocaleDateString('th-TH', options);
-        document.getElementById('endDate').innerText = new Date(CONFIG.endDate).toLocaleDateString('th-TH', options);
-        const today = new Date(); today.setHours(0,0,0,0);
-        const targetDate = new Date(CONFIG.endDate); targetDate.setHours(0,0,0,0);
-        const timeDiff = targetDate.getTime() - today.getTime();
-        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-        const statusBox = document.getElementById('statusBox');
+def process_data(file):
+    df = pd.read_excel(file)
+    col_date, col_deposit, col_withdraw = "Date", "Deposit", "Withdrawal"
+    df[col_date] = pd.to_datetime(df[col_date], errors="coerce")
+    df = df.dropna(subset=[col_date]).sort_values(by=col_date).reset_index(drop=True)
+    df[col_deposit] = pd.to_numeric(df[col_deposit], errors="coerce").fillna(0).astype(float)
+    df[col_withdraw] = pd.to_numeric(df[col_withdraw], errors="coerce").fillna(0).astype(float)
+    df["Year"] = df[col_date].dt.year
+    df["Year_Month"] = df[col_date].dt.to_period("M")
+    df["is_deposit"] = df[col_deposit] > 0
+    df["is_withdraw"] = df[col_withdraw] > 0
+    daily_sums = df.groupby([df[col_date].dt.to_period("M"), col_date])[[col_deposit, col_withdraw]].sum().reset_index()
+    idx_max_dep = daily_sums.groupby(col_date)[col_deposit].idxmax()
+    max_dep_per_month = daily_sums.loc[idx_max_dep, [col_date, col_date, col_deposit]]
+    max_dep_per_month.columns = ["Year_Month", "วันที่ฝากมากที่สุด", "ยอดฝากมากที่สุดในวันนั้น"]
+    idx_max_wth = daily_sums.groupby(col_date)[col_withdraw].idxmax()
+    max_wth_per_month = daily_sums.loc[idx_max_wth, [col_date, col_date, col_withdraw]]
+    max_wth_per_month.columns = ["Year_Month", "วันที่ถอนมากที่สุด", "ยอดถอนมากที่สุดในวันนั้น"]
+    monthly_summary = df.groupby("Year_Month").agg(ยอดฝากรวม=("Deposit", "sum"), ยอดถอนรวม=("Withdrawal", "sum"), จำนวนครั้งที่ฝาก=("is_deposit", "sum"), จำนวนครั้งที่ถอน=("is_withdraw", "sum"))
+    monthly_summary["ผลต่างฝากถอนเดือนนี้"] = monthly_summary["ยอดฝากรวม"] - monthly_summary["ยอดถอนรวม"]
+    monthly_summary["ยอดคงเหลือสะสมสุทธิ"] = monthly_summary["ผลต่างฝากถอนเดือนนี้"].cumsum()
+    monthly_final = monthly_summary.reset_index()
+    monthly_final = pd.merge(monthly_final, max_dep_per_month, on="Year_Month", how="left")
+    monthly_final = pd.merge(monthly_final, max_wth_per_month, on="Year_Month", how="left")
+    monthly_final["วันที่ฝากมากที่สุด"] = monthly_final["วันที่ฝากมากที่สุด"].dt.strftime("%Y-%m-%d")
+    monthly_final["วันที่ถอนมากที่สุด"] = monthly_final["วันที่ถอนมากที่สุด"].dt.strftime("%Y-%m-%d")
+    monthly_final["Year_Month"] = monthly_final["Year_Month"].astype(str)
+    monthly_final.columns = ["ปี-เดือน", "ยอดฝากรวม (บาท)", "ยอดถอนรวม (บาท)", "จำนวนครั้งที่ฝาก (ครั้ง)", "จำนวนครั้งที่ถอน (ครั้ง)", "กระแสเงินสดสุทธิเดือนนี้", "ยอดเงินคงเหลือสะสมสิ้นเดือน", "วันที่ฝากมากที่สุด", "ยอดฝากสูงสุดในวันนั้น", "วันที่ถอนมากที่สุด", "ยอดถอนสูงสุดในวันนั้น"]
+    yearly_final = df.groupby("Year").agg(ยอดฝากรวมทั้งปี=(col_deposit, "sum"), ยอดถอนรวมทั้งปี=(col_withdraw, "sum"), จำนวนครั้งที่ฝากทั้งปี=("is_deposit", "sum"), จำนวนครั้งที่ถอนทั้งปี=("is_withdraw", "sum"))
+    yearly_final["ผลต่างสุทธิรายปี"] = yearly_final["ยอดฝากรวมทั้งปี"] - yearly_final["ยอดถอนรวมทั้งปี"]
+    yearly_final["ยอดคงเหลือสะสมสิ้นปี"] = yearly_final["ผลต่างสุทธิรายปี"].cumsum()
+    yearly_final = yearly_final.reset_index()
+    yearly_final.columns = ["ปี (Year)", "ยอดฝากรวมทั้งปี", "ยอดถอนรวมทั้งปี", "จำนวนครั้งที่ฝากทั้งปี", "จำนวนครั้งที่ถอนทั้งปี", "กระแสเงินสดสุทธิรายปี", "ยอดเงินคงเหลือสะสมสิ้นปี"]
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        monthly_final.to_excel(writer, sheet_name="สรุปรายเดือนย้อนหลัง", index=False, startrow=4)
+        yearly_final.to_excel(writer, sheet_name="สรุปภาพรวมรายปี", index=False, startrow=4)
+        workbook = writer.book
+        font_main_title = Font(name="Cordia New", size=22, bold=True, color="1B365D")
+        font_sub_title = Font(name="Cordia New", size=14, italic=True, color="555555")
+        font_header = Font(name="Cordia New", size=14, bold=True, color="FFFFFF")
+        font_data = Font(name="Cordia New", size=13)
+        fill_header = PatternFill(start_color="1B365D", end_color="1B365D", fill_type="solid")
+        fill_zebra = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
+        grid_border = Border(left=Side(style="thin", color="E5E7EB"), right=Side(style="thin", color="E5E7EB"), top=Side(style="thin", color="E5E7EB"), bottom=Side(style="thin", color="E5E7EB"))
+        for sheet_name in workbook.sheetnames:
+            ws = workbook[sheet_name]
+            ws["A2"] = "📊 โปรแกรม ตรวจสอบเส้นเงิน ย้อนหลัง 10 ปี"
+            ws["A2"].font = font_main_title
+            ws["A3"] = f"รายงานประเภท: {sheet_name}"
+            ws["A3"].font = font_sub_title
+            ws.row_dimensions[5].height = 28
+            for cell in ws[5]:
+                cell.font = font_header
+                cell.fill = fill_header
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+            for row_idx, row in enumerate(ws.iter_rows(min_row=6, max_row=ws.max_row, min_col=1, max_col=ws.max_column), start=6):
+                ws.row_dimensions[row_idx].height = 20
+                for cell in row:
+                    cell.font = font_data
+                    cell.border = grid_border
+                    if row_idx % 2 == 0:
+                        cell.fill = fill_zebra
+                    val = cell.value
+                    if isinstance(val, (int, float)):
+                        header_name = str(ws.cell(row=5, column=cell.column).value)
+                        if "จำนวนครั้ง" in header_name or "ปี" in header_name:
+                            cell.number_format = "#,##0"
+                            cell.alignment = Alignment(horizontal="center")
+                        else:
+                            cell.number_format = "#,##0.00"
+                            cell.alignment = Alignment(horizontal="right")
+                    else:
+                        cell.alignment = Alignment(horizontal="center")
+            for col in ws.columns:
+                max_len = max(len(str(cell.value or "")) for cell in col)
+                col_letter = get_column_letter(col[0].column)
+                ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
+    return output.getvalue()
 
-        if (daysDiff > 0) {
-            statusBox.className = "status-box status-safe";
-            statusBox.innerHTML = `? สภาพปกติ<br><span style="font-size:1rem; font-weight:normal;">เหลืออีก <b>${daysDiff}</b> วันต้องทาใหม่</span>`;
-        } else if (daysDiff === 0) {
-            statusBox.className = "status-box status-warning";
-            statusBox.innerHTML = `?? ถึงกำหนดวันนี้!<br><span style="font-size:1rem; font-weight:normal;">ต้องถอดกระสวยไปทาสีทันที</span>`;
-        } else {
-            statusBox.className = "status-box status-warning";
-            statusBox.innerHTML = `? เลยกำหนดแล้ว!<br><span style="font-size:1rem; font-weight:normal;">เลยกำหนดมาแล้ว <b>${Math.abs(daysDiff)}</b> วัน รีบทาสีด่วน</span>`;
-        }
-    }
-    initStatus();
-</script>
-
-</body>
-</html>
+if uploaded_file is not None:
+    with st.spinner("🔄 โปรแกรมกำลังวิเคราะห์เส้นทางการเงินย้อนหลัง 10 ปี..."):
+        try:
+            excel_data = process_data(uploaded_file)
+            st.success("✨ คำนวณสำเร็จเรียบร้อยแล้ว!")
+            st.download_button(label="📥 ดาวน์โหลดไฟล์รายงานสรุปผลลัพธ์ (Excel)", data=excel_data, file_name="รายงาน_ตรวจสอบเส้นเงิน_สรุปภาพรวม.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        except Exception as e:
+            st.error(f"❌ เกิดข้อผิดพลาด กรุณาตรวจสอบหัวคอลัมน์ (Date, Deposit, Withdrawal): {e}")
