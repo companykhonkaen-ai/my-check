@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QC Audit Checklist - โต๊ะที่ 1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #1F4E79;
+            --secondary-color: #D9E1F2;
+            --success-color: #2e7d32;
+            --fail-color: #c62828;
+            --text-color: #333;
+            --bg-color: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            padding: 20px;
+            padding-bottom: 120px; /* เว้นที่ให้แถบคะแนนด้านล่าง */
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .meta-group {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            margin-bottom: 12px;
+        }
+
+        .form-control:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-control label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .form-control input[type="text"], 
+        .form-control input[type="datetime-local"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .section-title {
+            background: var(--primary-color);
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            border-color: #b0bec5;
+        }
+
+        .check-point {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #111;
+            margin-bottom: 4px;
+        }
+
+        .check-method {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 12px;
+            background: #f8f9fa;
+            padding: 6px 10px;
+            border-left: 3px solid #b0bec5;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-status {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-pass.active {
+            background-color: #e8f5e9;
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .btn-fail.active {
+            background-color: #ffebee;
+            border-color: var(--fail-color);
+            color: var(--fail-color);
+        }
+
+        .note-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        .photo-upload {
+            margin-top: 10px;
+        }
+
+        .file-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #eceff1;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: 1px solid #cfd8dc;
+        }
+
+        /* ส่วนแสดงรูปตัวอย่างที่เลือก */
+        .preview-img {
+            max-width: 100px;
+            max-height: 100px;
+            margin-top: 8px;
+            display: none;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        /* แถบสรุปคะแนนฟิกซ์ไว้ด้านล่างหน้าจอ */
+        .score-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 600px;
+            margin: 0 auto;
+            border-radius: 12px 12px 0 0;
+            z-index: 1000;
+        }
+
+        .score-info h3 {
+            font-size: 1.1rem;
+            color: var(--primary-color);
+        }
+
+        .score-info p {
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        .btn-submit {
+            background: var(--primary-color);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .btn-submit:hover {
+            background: #153654;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>แบบฟอร์มการตรวจสอบคุณภาพส่วนกลาง</h1>
+        <p>หน่วยงาน QC ส่วนกลาง แผนก: โต๊ะที่ 1</p>
+    </div>
+
+    <div class="meta-group">
+        <div class="form-control">
+            <label><i class="fa-solid fa-user"></i> ชื่อพนักงานกรอ</label>
+            <input type="text" id="workerName" placeholder="พิมพ์ชื่อ-นามสกุลพนักงาน">
+        </div>
+        <div class="form-control">
+            <label><i class="fa-solid fa-calendar-days"></i> วันที่และเวลาตรวจสอบ</label>
+            <input type="datetime-local" id="auditTime">
+        </div>
+    </div>
+
+    <form id="auditForm">
+        <div class="section-title"><i class="fa-solid fa-layer-group"></i> 1. ใยปน</div>
+        
+        <div class="card" data-id="1">
+            <div class="check-point">ความถูกต้องของเบอร์ใย</div>
+            <div class="check-method">วิธีการตรวจ: ดูหลอดใยขนาดกรอที่โต๊ะกรอ</div>
+            <div class="action-row">
+                <button type="button" class="btn-status btn-pass" onclick="setStatus(this, 'P')"><i class="fa-solid fa-circle-check"></i> ผ่าน (P)</button>
+                <button type="button" class="btn-status btn-fail" onclick="setStatus(this, 'F')"><i class="fa-solid fa-circle-xmark"></i> ไม่ผ่าน (F)</button>
+            </div>
+            <input type="text" class="note-input" placeholder="ระบุหมายเหตุ (ถ้ามี)">
+            <div class="photo-upload">
+                <label class="file-label"><i class="fa-solid fa-camera"></i> ถ่ายรูป/แนบไฟล์<input type="file" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
+                <img class="preview-img" src="" alt="preview">
+            </div>
+        </div>
+
+        <div class="card" data-id="2">
+            <div class="check-point">ความถูกต้องของสัญลักษณ์อีแปะ</div>
+            <div class="check-method">วิธีการตรวจ: ดูแผ่นอีแปะขณะกรอที่โต๊ะกรอ</div>
+            <div class="action-row">
+                <button type="button" class="btn-status btn-pass" onclick="setStatus(this, 'P')"><i class="fa-solid fa-circle-check"></i> ผ่าน (P)</button>
+                <button type="button" class="btn-status btn-fail" onclick="setStatus(this, 'F')"><i class="fa-solid fa-circle-xmark"></i> ไม่ผ่าน (F)</button>
+            </div>
+            <input type="text" class="note-input" placeholder="ระ集中หมายเหตุ (ถ้ามี)">
+            <div class="photo-upload">
+                <label class="file-label"><i class="fa-solid fa-camera"></i> ถ่ายรูป/แนบไฟล์<input type="file" accept="image/*" style="display:none;" onchange="previewImage(this)"></label>
+                <img class="preview-img" src="" alt="preview">
+            </div>
+        </div>
+
+        <div class="card" data-id="3">
+            <div class="check-point">ดูสลับสติ๊กเกอร์อีแปะตรงกับสติ๊กหลอดใยไหม</div>
+            <div class="check-method">วิธีการตรวจเช็ค: ตรวจสอบความถูกต้องของการติดสติ๊กเกอร์เปรียบเทียบทั้งสองจุด</div>
+            <div class="action-row">
+                <button type="button" class="btn-status btn-pass" onclick="setStatus(this, 'P')"><i class="fa-solid fa-circle-check"></i> ผ่าน (P)</button>
+                <button type="button" class="btn-status btn-fail" onclick="setStatus(this, 'F')"><i class="fa-solid fa-circle-xmark"></i> ไม่ผ่าน (F)</button>
+            </div>
+            <input type="text" class="note-input" placeholder="ระบุหมายเหตุ (ถ้ามี)">
+            <div class="photo-upload">
+                <label class="file-label"><i class="fa-solid fa-camera"></i> ถ่ายรูป/แนบไฟล์<input type="file" accept="image/*"
